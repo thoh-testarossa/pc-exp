@@ -136,9 +136,7 @@ int main(int argv, char *argc[])
         mysum += judgeAllFromPrimeTable(from, to, primeArray, pCount);
     }
 
-    MPI_Reduce(&mysum, &sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    std::cout << myid << " " << mysum << std::endl;
+    MPI_Reduce(&mysum, &sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);std::cout << myid << " " << mysum << std::endl;
 
     if(0 == myid)
         std::cout << sum + 1 << std::endl;

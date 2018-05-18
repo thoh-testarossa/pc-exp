@@ -19,20 +19,15 @@ int main(int argv, char *argc[])
     if(thread_sum > MAXTHREADNUM) thread_sum = MAXTHREADNUM;
     omp_set_num_threads(thread_sum);
 
-#pragma omp parallel
+
+#pragma omp parallel for reduction(+:pi) schedule(dynamic)
+
+    for(i = 0; i < STEP_NUM; i++)
     {
-        double x;
-        int tid = omp_get_thread_num();
-        sum[tid] = 0;
-#pragma omp for
-        for(i = tid; i < STEP_NUM; i++)
-        {
-            x = (i + 0.5) * STEP_LENGTH;
-            sum[tid] += 4.0 / (1.0 + x * x);
-        }
+        x = (i + 0.5) * STEP_LENGTH;
+        pi += 4.0 / (1.0 + x * x);
     };
-    for(i = 0; i < thread_sum; i++) pi += sum[i] * STEP_LENGTH;
-    std::cout << pi << std::endl;
+    std::cout << pi * STEP_LENGTH << std::endl;
 
     return 0;
 }
