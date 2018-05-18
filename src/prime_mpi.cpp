@@ -121,9 +121,7 @@ int main(int argv, char *argc[])
                 primeArray[k++] = fromBitToNum(i, j);
     }
 
-
-
-    int sum = 1, mysum = 0;
+    int sum = 0, mysum = 0;
 
     int numprocs, myid;
 
@@ -131,7 +129,7 @@ int main(int argv, char *argc[])
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
-    for(int from = myid * BLOCKSIZE; from < SCALE; from += numprocs * BLOCKSIZE)
+    for(int from = myid * BLOCKSIZE; from < SCALE; from += BLOCKSIZE * numprocs)
     {
         int to = from + BLOCKSIZE;
         if(to > SCALE) to = SCALE;
@@ -139,6 +137,8 @@ int main(int argv, char *argc[])
     }
 
     MPI_Reduce(&mysum, &sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    std::cout << myid << " " << mysum << std::endl;
 
     if(0 == myid)
         std::cout << sum + 1 << std::endl;
