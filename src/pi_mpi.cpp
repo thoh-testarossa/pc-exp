@@ -6,7 +6,7 @@
 #include <cmath>
 #include "mpi.h"
 
-#define STEP_NUM 20000000
+#define STEP_NUM 200000000
 #define STEP_LENGTH 1/STEP_NUM
 #define MAXTHREADNUM 32
 

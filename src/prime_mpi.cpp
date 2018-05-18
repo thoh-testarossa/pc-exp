@@ -129,7 +129,7 @@ int main(int argv, char *argc[])
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
-    for(int from = myid * BLOCKSIZE; from < SCALE; from += BLOCKSIZE * numprocs)
+    for(int from = BLOCKSIZE * myid; from < SCALE; from += BLOCKSIZE * numprocs)
     {
         int to = from + BLOCKSIZE;
         if(to > SCALE) to = SCALE;
