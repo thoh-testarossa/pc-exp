@@ -10,7 +10,11 @@ You should install a reasonable C++11-supported and openmp-supported compiler (I
 
 ## Config
 
+Maybe you should check the compiler in the CMakeLists.txt and the script placed in src/ which I will mention behind to make sure these config files can works well.
+
 ## Installation (For Unix-Like OS)
+
+### For OpenMP programs
 
 1. Clone this project to your local machine and move to the root directory of this project
 
@@ -40,11 +44,25 @@ make
 
 After that, some executables will appear in the directory "build".
 
-However, since the fxxking cmake can only use one compiler at one time, so some code should be compiled manually (mainly for mpi code). I place a script for that in the src/
+### For MPI programs
+
+Since the fxxking cmake can only use one compiler at one time and MPI codes can only be compiled by `mpicc` or `mpicxx`, so these codes should be compiled manually. I place a script for that in the src/ for easier compilation
 
 ## Usage
 
-Just execute them.
+### For OpenMP programs
+
+It's okay to just execute them without doing nothing. By default the OpenMP programs will use only 1 thread as the config to run. To change the concurrent thread number, add a number behind the program name as the parameter which determines thread number.
+
+### For MPI programs
+
+To run MPI programs, use instructions in this form:
+
+```
+mpirun -np [num-of-processors] [name-of-program]
+```
+
+which -np options determines the processors you want to use in an MPI model.
 
 ## Parts finished
 
