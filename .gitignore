@@ -1,0 +1,5 @@
+build*
+cmake-build-debug*
+pc_exp_*
+.idea*
+*.DS_Store
