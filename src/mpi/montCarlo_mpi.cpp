@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <random>
+#include <climits>
 #include "mpi.h"
 
 #define TIMELIMIT 100000
