@@ -87,28 +87,25 @@ void Get_Input_Arguments(int argc, char *argv[], int *num_particles, int *num_st
 
 void generateInputFile(double *masses, vector *positions, vector *velocities, int num_particles)
 {
-    if (my_rank == MASTER)
+    std::ofstream fout("generated_input.txt");
+
+    if(!fout.is_open())
     {
-        std::ofstream fout("generated_input.txt");
-
-        if (!fout.is_open())
-        {
-            std::cout << "Cannot create input file generated_input.txt" << std::endl;
-            exit(1);
-        }
-
-        for (int line = 0; line < num_particles; line++)
-        {
-            fout << masses[line] << " "
-                 << positions[line][X] << " "
-                 << positions[line][Y] << " "
-                 << velocities[line][X] << " "
-                 << velocities[line][Y] << " "
-                 << std::endl;
-        }
-
-        fout.close();
+        std::cout << "Cannot create input file generated_input.txt" << std::endl;
+        exit(1);
     }
+
+    for(int line = 0; line < num_particles; line++)
+    {
+        fout << masses[line] << " "
+             << positions[line][X] << " "
+             << positions[line][Y] << " "
+             << velocities[line][X] << " "
+             << velocities[line][Y] << " "
+             << std::endl;
+    }
+
+    fout.close();
 }
 
 void Generate_Init_Conditions(double masses[], vector positions[], vector my_velocities[], int num_particles, int chunk)
@@ -235,7 +232,6 @@ void Update_Particles(int my_particles, double masses[], vector my_forces[], vec
 
 void Generate_Output_File(double masses[], vector positions[], vector my_velocities[], int num_particles, int chunk)
 {
-    MPI_Gather(my_velocities, chunk, vectorMPI, velocities, chunk, vectorMPI, MASTER, MPI_COMM_WORLD);
 
     if (my_rank == MASTER)
     {
@@ -334,7 +330,10 @@ int main(int argc, char* argv[])
 #endif
     }
 
+    MPI_Gather(my_velocities, chunk, vectorMPI, velocities, chunk, vectorMPI, MASTER, MPI_COMM_WORLD);
+
 #ifdef GENERATE_OUTPUT_FILE
+
     if(my_rank == MASTER)
         Generate_Output_File(masses, positions, my_velocities, num_particles, chunk);
 #endif
