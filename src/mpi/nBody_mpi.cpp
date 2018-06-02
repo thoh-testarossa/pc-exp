@@ -11,32 +11,24 @@
 #include "mpi.h"
 
 #define MASTER 0
-#define DIM 2                           /* sistema bidimensionale       */
-#define X 0                             /* coordinata x                 */
-#define Y 1                             /* coordinata y                 */
+#define DIM 2                           /* Number of dimension          */
+#define X 0                             /* coordinate x                 */
+#define Y 1                             /* coordinate y                 */
 #define DEBUG_GET_ARGUMENT 1
-//#define DEBUG_OUTPUT_STATE 1
-//#define DEBUG_FORCES_BEFORE 0
-//#define DEBUG_FORCES_AFTER 0
-//#define DEBUG_READ_FILE 0
-//#define DEBUG_UPDATE_BEFORE 0
-//#define DEBUG_UPDATE_AFTER 0
 #define GENERATE_INPUT_FILE 1
 #define GENERATE_OUTPUT_FILE 1
 
-typedef double vector[DIM];             /* Vettore di tipo double       */
+typedef double vector[DIM];             /* 2-dimensional axis system    */
 const double G = 6.673e-11;
-//const double G = 6;
 
-int my_rank;                            /* Rank del processo            */
-int size;                               /* Numero dei processo          */
+int my_rank;                            /* Rank of this process         */
+int size;                               /* Total number of process      */
 
 MPI_Datatype vectorMPI;
 
-vector *velocities = NULL;              /* Array velocità               */
+vector *velocities = NULL;              /* Array of total v table       */
 
-//prototipi di funzione
-void Help()
+void help()
 {
     std::cout << "Usage:" << std::endl
          << "   mpirun -np <num_of_procs> <name_of_program> "
@@ -45,12 +37,12 @@ void Help()
          << std::endl;
 }
 
-void Get_Input_Arguments(int argc, char *argv[], int *num_particles, int *num_steps, double *delta_t, int *output_freq)
+void getInputArguments(int argc, char *argv[], int *num_particles, int *num_steps, double *delta_t, int *output_freq)
 {
     if (argc != 5)
     {
         if (my_rank == MASTER)
-            Help();
+            help();
         MPI_Finalize();
         exit(0);
     }
@@ -69,7 +61,7 @@ void Get_Input_Arguments(int argc, char *argv[], int *num_particles, int *num_st
     if (*num_particles <= 0 || *num_steps < 0 || *delta_t <= 0)
     {
         if (my_rank == MASTER)
-            Help();
+            help();
         MPI_Finalize();
         exit(0);
     }
@@ -108,7 +100,7 @@ void generateInputFile(double *masses, vector *positions, vector *velocities, in
     fout.close();
 }
 
-void Generate_Init_Conditions(double masses[], vector positions[], vector my_velocities[], int num_particles, int chunk)
+void generateInitConditions(double masses[], vector positions[], vector my_velocities[], int num_particles, int chunk)
 {
     double mass = 10000;
     double gap = 0.01;
@@ -137,43 +129,15 @@ void Generate_Init_Conditions(double masses[], vector positions[], vector my_vel
     MPI_Scatter(velocities, chunk, vectorMPI, my_velocities, chunk, vectorMPI, MASTER, MPI_COMM_WORLD);
 }
 
-void Output_State(double time, double masses[], vector positions[], vector my_velocities[], int num_particles, int chunk)
-{
-    int part;
-
-    MPI_Gather(my_velocities, chunk, vectorMPI, velocities, chunk, vectorMPI, MASTER, MPI_COMM_WORLD);
-    if (my_rank == MASTER)
-    {
-        std::cout << "Current time: " << time << std::endl;
-
-        for (part = 0; part < num_particles; part++)
-        {
-            std::cout << "Particle: " << part << "\t"
-                      << "Mass: " << masses[part] << "\t"
-                      << "X: " << positions[part][X] << "\t"
-                      << "Y: " << positions[part][Y] << "\t"
-                      << "v_X: " << velocities[part][X] << "\t"
-                      << "v_Y: " << velocities[part][Y] << "\t"
-                      << std::endl;
-        }
-        std::cout << std::endl;
-    }
-}
-
-void Compute_Force(int my_particles, double masses[], vector my_forces[], vector positions[], int num_particles, int chunk)
+void computeForce(int my_particles, double masses[], vector my_forces[], vector positions[], int num_particles, int chunk)
 {
 
     double m_g;
     vector f_part_k;
     double len, len_3, fact;
 
-    /* Indice corrispondente alla particelle locali */
     int part = my_rank * chunk + my_particles;
     my_forces[my_particles][X] = my_forces[my_particles][Y] = 0.0;
-
-#ifdef DEBUG_FORCES_BEFORE
-    printf("Proc %d > Current total force on part %d = (%.3e, %.3e)\n", my_rank, part, my_forces[my_particles][X], my_forces[my_particles][Y]);
-#endif
 
     for (int k = 0; k < num_particles; k++)
     {
@@ -193,18 +157,14 @@ void Compute_Force(int my_particles, double masses[], vector my_forces[], vector
             f_part_k[X] *= fact;
             f_part_k[Y] *= fact;
 
-#ifdef DEBUG_FORCES_AFTER
-            printf("Proc %d > Force on part %d due to part %d = (%.3e, %.3e)\n", my_rank, part, k, f_part_k[X], f_part_k[Y]);
-#endif
-
-            /* Forza totale sulla particella */
             my_forces[my_particles][X] += f_part_k[X];
             my_forces[my_particles][Y] += f_part_k[Y];
         }
     }
 }
 
-void Update_Particles(int my_particles, double masses[], vector my_forces[], vector my_positions[], vector my_velocities[], int num_particles, int chunk, double delta_t) {
+void updateParticles(int my_particles, double masses[], vector my_forces[], vector my_positions[], vector my_velocities[], int num_particles, int chunk, double delta_t)
+{
 
     int part;
     double fact;
@@ -212,25 +172,14 @@ void Update_Particles(int my_particles, double masses[], vector my_forces[], vec
     part = my_rank*chunk + my_particles;
     fact = delta_t/masses[part];
 
-#ifdef DEBUG_UPDATE_BEFORE
-    printf("   Proc %d > Before update of %d:\n", my_rank, part);
-    printf("   Position  = (%.3e, %.3e)\n", my_positions[my_particles][X], my_positions[my_particles][Y]);
-    printf("   Velocity  = (%.3e, %.3e)\n", my_positions[my_particles][X], my_positions[my_particles][Y]);
-    printf("   Net force = (%.3e, %.3e)\n", my_forces[my_particles][X], my_forces[my_particles][Y]);
-#endif
-
     my_positions[my_particles][X] += delta_t * my_velocities[my_particles][X];
     my_positions[my_particles][Y] += delta_t * my_velocities[my_particles][Y];
     my_velocities[my_particles][X] += fact * my_forces[my_particles][X];
     my_velocities[my_particles][Y] += fact * my_forces[my_particles][Y];
 
-#ifdef DEBUG_UPDATE_AFTER
-    printf("Proc %d > Position of %d = (%.3e, %.3e), Velocity = (%.3e,%.3e)\n", my_rank, part, my_positions[my_particles][X], my_positions[my_particles][Y],
-           my_velocities[my_particles][X], my_velocities[my_particles][Y]);
-#endif
 }
 
-void Generate_Output_File(double masses[], vector positions[], vector my_velocities[], int num_particles, int chunk)
+void generateOutputFile(double masses[], vector positions[], vector velocities[], int num_particles)
 {
 
     if (my_rank == MASTER)
@@ -260,32 +209,27 @@ void Generate_Output_File(double masses[], vector positions[], vector my_velocit
 //main program
 int main(int argc, char* argv[])
 {
+    //Definition part
+    int num_particles;                  /* Number of the particles              */
+    int chunk;                          /* Number of the particles per process  */
+    int num_steps;                      /* Number of timesteps                  */
+    int my_particles;                   /* Particles id for each process        */
+    int output_freq;                    /* Test output frequency                */
+    double delta_t;                     /* Internal of each timestep            */
+    double *masses;                     /* Array of particles masses            */
+    vector *my_positions;               /* Array of pos in this process         */
+    vector *positions;                  /* Array of pos of all particles        */
+    vector *my_velocities;              /* Array of v in this process           */
+    vector *my_forces;                  /* Array of f in this process           */
 
-    int num_particles;                  /* Numero totale di particelle       */
-    int chunk;                          /* Numero particelle per rank        */
-    int num_steps;                      /* Numero timesteps                  */
-    int steps;                          /* Step corrente                     */
-    int my_particles;                   /* Particella rank corrente          */
-    int output_freq;                    /* Frequenza di output               */
-    double delta_t;                     /* Taglia timestep                   */
-    double *masses;                     /* Array di tutte le masse           */
-    vector *my_positions;               /* Array posizioni rank              */
-    vector *positions;                  /* Array di tutte le posizioni       */
-    vector *my_velocities;              /* Array velocità rank               */
-    vector *my_forces;                  /* Array forze rank                  */
+    double start_time;                  /* MPI start time                       */
+    double end_time;                    /* MPI end time                         */
 
-    double start_time;                  /* Tempo inizio esecuzione MPI       */
-    double end_time;                    /* Tempo fine esecuzione MPI         */
-
-    //INIZIALIZZO MPI
+    //Initialization part
     MPI_Init(&argc, &argv);
-    //CONSIDERO NUMERO DI PROCESSI
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    //CONSIDERO IL RANK DEL PROCESSO
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-    //PRELEVO PARAMETRI DI INPUT DA LINEA DI COMANDO
-    Get_Input_Arguments(argc, argv, &num_particles, &num_steps, &delta_t, &output_freq);
-    //DIVIDO LE PARTICELLE PER IL NUMERO DI PROCESSI
+    getInputArguments(argc, argv, &num_particles, &num_steps, &delta_t, &output_freq);
     chunk = num_particles / size;
 
     masses = new double[num_particles];
@@ -297,37 +241,24 @@ int main(int argc, char* argv[])
     if (my_rank == MASTER)
         velocities = new vector[num_particles];
 
-    //DEFINISCO UN TIPO DI DATIMPI CONTIGUO
     MPI_Type_contiguous(DIM, MPI_DOUBLE, &vectorMPI);
     MPI_Type_commit(&vectorMPI);
 
-    //GENERO O LEGGO I VALORI INIZIALI DELLA SIMULAZIONE
-    Generate_Init_Conditions(masses, positions, my_velocities, num_particles, chunk);
+    //Initial condition generation
+    generateInitConditions(masses, positions, my_velocities, num_particles, chunk);
 
     start_time = MPI_Wtime();
 
-#ifdef DEBUG_OUTPUT_STATE
-    Output_State(0.0, masses, positions, my_velocities, num_particles, chunk);
-#endif
-
-    //ITERO PER IL NUMERO DI STEP INDICATO
-    for (steps = 1; steps <= num_steps; steps++)
+    //Simulation part
+    for (int steps = 1; steps <= num_steps; steps++)
     {
-        //COMPUTO LE FORZE PER OGNI PARTICELLA
         for (my_particles = 0; my_particles < chunk; my_particles++)
-            Compute_Force(my_particles, masses, my_forces, positions, num_particles, chunk);
-        //AGGIORNO I VALORI PER OGNI PARTICELLA
+            computeForce(my_particles, masses, my_forces, positions, num_particles, chunk);
         for (my_particles = 0; my_particles < chunk; my_particles++)
-            Update_Particles(my_particles, masses, my_forces, my_positions, my_velocities, num_particles, chunk,
+            updateParticles(my_particles, masses, my_forces, my_positions, my_velocities, num_particles, chunk,
                              delta_t);
 
-
         MPI_Allgather(MPI_IN_PLACE, chunk, vectorMPI, positions, chunk, vectorMPI, MPI_COMM_WORLD);
-
-#ifdef DEBUG_OUTPUT_STATE
-        if (steps % output_freq == 0)
-            Output_State(time, masses, positions, my_velocities, num_particles, chunk);
-#endif
     }
 
     MPI_Gather(my_velocities, chunk, vectorMPI, velocities, chunk, vectorMPI, MASTER, MPI_COMM_WORLD);
@@ -335,7 +266,7 @@ int main(int argc, char* argv[])
 #ifdef GENERATE_OUTPUT_FILE
 
     if(my_rank == MASTER)
-        Generate_Output_File(masses, positions, my_velocities, num_particles, chunk);
+        generateOutputFile(masses, positions, my_velocities, num_particles);
 #endif
 
     end_time = MPI_Wtime();
@@ -347,6 +278,7 @@ int main(int argc, char* argv[])
                   ;
     }
 
+    //Finishing the execution
     MPI_Type_free(&vectorMPI);
     free(masses);
     free(positions);
@@ -355,8 +287,6 @@ int main(int argc, char* argv[])
     if (my_rank == MASTER)
         free(velocities);
 
-    //CHIUDO MPI
     MPI_Finalize();
     return 0;
-
 }
