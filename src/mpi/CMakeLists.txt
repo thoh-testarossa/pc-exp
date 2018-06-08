@@ -18,3 +18,5 @@ add_executable(pc_exp_pi_mpi pi_mpi.cpp)
 add_executable(pc_exp_montCarlo_mpi montCarlo_mpi.cpp)
 
 add_executable(pc_exp_nBody_mpi nBody_mpi.cpp)
+
+add_executable(pc_exp_PSRS_mpi PSRS_mpi.cpp)
