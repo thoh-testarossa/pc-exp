@@ -263,9 +263,10 @@ int main(int argv, char *argc[])
 
     //Multimerge part using minHeap
     int *sortedTotalSamplingPoint = nullptr;
+    int *samplingPointArrayPointer = nullptr;
     if(MASTER_PROC == myid)
     {
-        int *samplingPointArrayPointer = new int [numprocs];
+        samplingPointArrayPointer = new int [numprocs];
         for(int i = 0; i < numprocs; i++) samplingPointArrayPointer[i] = i * numprocs;
 
         minHeapNode *minHeap = new minHeapNode [numprocs + 1];
@@ -469,6 +470,23 @@ int main(int argv, char *argc[])
             fout << endl;
         }
     }
+
+    //Ending part
+    delete [] totalDataset;
+    delete [] myDataset;
+    delete [] mySamplingPoint;
+    delete [] totalSamplingPoint;
+    delete [] sortedTotalSamplingPoint;
+    delete [] samplingPointArrayPointer;
+    delete [] selectedPivots;
+    delete [] posOfEachPartStartFrom;
+    delete [] numOfEachPart;
+    delete [] numOfCorrespondingPartFromEachProcess;
+    delete [] startPosOfCorrespondingPartFromEachProcess;
+    delete [] correspondingPartDataSet;
+    delete [] correspondingPartSizeArray;
+    delete [] startPosForSortedEachProcessPart;
+    delete [] ret_dataSet;
 
     MPI_Finalize();
 
